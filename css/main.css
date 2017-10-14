@@ -105,11 +105,11 @@ input[type=submit] {
 }
 
 .post-title-a:visited {
-    color: purple;
+    color: gray;
 }
 
 .post-title-a:hover {
-    color: gray;
+    color: purple;
 }
 
 .post-author-date {
