@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block contents %}
+     <div class="login-area">
+        {% if username %}
+            Welcome, {{username}} | <a class="login-link" href="/blog/newpost">Newpost</a> | <a class="login-link" href="/logout">Logout</a>
+        {% else %}
+            <a class="login-link" href="/login">Login</a> | <a class="login-link" href="/signup">Signup</a>
+        {% endif %}
+    </div>
+    {% for p in posts %}
+        {{p.render() | safe}}
+        <br><br>
+    {% endfor %}
+    {% if error %}
+        <script type="text/javascript">
+            var msg = decodeURIComponent("{{error}}")
+            alert(msg);
+        </script>
+    {% endif %}
+
+{% endblock %}
