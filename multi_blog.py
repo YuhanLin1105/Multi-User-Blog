@@ -68,7 +68,7 @@ class Handler(webapp2.RequestHandler):
 # The mainpage handler
 class MainPage(Handler):
     def get(self):
-        self.write('Hellllllllllo')
+        self.redirect('/blog')
 
 # Do not understand the effect of the blog_key here
 # def blog_key(name='default'):
