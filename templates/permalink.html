@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block contents %}
+
     <div class="login-area">
         {% if username %}
             Welcome, {{username}} | <a class="login-link" href="/blog/newpost">Newpost</a> | <a class="login-link" href="/logout">Logout</a>
@@ -8,5 +9,31 @@
             <a class="login-link" href="/login">Login</a> | <a class="login-link" href="/signup">Signup</a>
         {% endif %}
     </div>
+
     {{post.render() | safe}}
+    <br>
+    <br>
+    <h3 class="comment-title">Comments:</h3>
+
+    {% for c in comment %}
+        {{c.render() | safe}}
+    {% endfor %}
+
+    <br>
+    <br>
+    <form class="comment-form" method=post>
+        <label class="comment-form-label">
+            Add your comments below:
+            <textarea class="comment-form-text"  name="comment_content">{{comment_content}}</textarea>
+        </label>
+        <input type="hidden" name = "author" value=username>
+        <input class="comment-form-submit" type="submit" value="new post">
+    </form>
+
+    {% if error %}
+        <script type="text/javascript">
+            alert("{{error}}");
+        </script>
+    {% endif %}
+
 {% endblock %}
