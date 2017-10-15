@@ -69,7 +69,7 @@ textarea {
 }
 
 input[type=submit] {
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .main-title {
@@ -121,6 +121,7 @@ input[type=submit] {
 }
 
 .post-content {
+    word-break:break-all;
     margin-top: 5px;
 }
 .post-comment {
@@ -132,3 +133,55 @@ input[type=submit] {
     text-align: right;
 }
 
+.comment-title{
+    width:700px;
+    padding: 0 auto;
+    margin: 0 auto;
+    margin-left: 50px;
+    border-bottom: 3px solid #666;
+
+}
+
+.comment {
+    width: 700px;
+    margin-left: 50px;
+    margin-top:10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #666;
+}
+.comment-content {
+    word-break:break-all;
+    width:700px;
+    border-bottom: : 3px solid #666;
+    margin-top: 5px;
+
+}
+
+.comment-author{
+    font-weight: bold;
+    color: gray;
+}
+
+
+.comment-date {
+    font-size: 10px;
+    color: gray;
+    text-align: right;
+    margin-bottom: 5px;
+}
+
+.comment-form-label {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.comment-form-text {
+    width: 500px;
+    height: 200px;
+}
+
+.comment-form-submit {
+    position: relative;
+    left: 150px;
+    width:10em;
+}

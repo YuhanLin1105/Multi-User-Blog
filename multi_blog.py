@@ -83,15 +83,39 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     last_modified = db.DateTimeProperty(auto_now=True)
     liked = db.IntegerProperty(default=0)
+    comment = db.ListProperty(int, default=[])
 
     @classmethod
     def by_id(cls, pid):
         return Post.get_by_id(pid)
 
+    def comment_counter(self):
+        count = 0
+        for i in self.comment:
+            count += 1
+        return count
+
     def render(self):
         # Make '\n' work in html
         self._render_text = self.content.replace('\n', '<br>')
         return jinja2_env.get_template('post.html').render(p=self)
+
+
+# Comment staff
+class PostComment(db.Model):
+    author = db.StringProperty(required=True)
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+
+    @classmethod
+    def by_id(cls, cid):
+        return PostComment.get_by_id(cid)
+
+    def render(self):
+        # Make '\n' work in html
+        self._render_text = self.content.replace('\n', '<br>')
+        return jinja2_env.get_template('comment.html').render(c=self)
+
 
 
 # User staff
@@ -195,13 +219,40 @@ class PostPage(Handler):
         if not post:
             self.error(404)
             return
+
+        c = []
+        for comment_id in post.comment:
+            c.append(PostComment.by_id(comment_id))
+
         if self.user:
-            self.render("permalink.html", post=post, username=self.user.name)
+            self.render("permalink.html", post=post, username=self.user.name, comment=c)
         else:
-            self.render("permalink.html", post=post)
+            self.render("permalink.html", post=post, comment=c)
+
+    def post(self, post_id):
+        error = "Error: please login!"
+        p = Post.by_id(int(post_id))
+        content = self.request.get('comment_content')
+        comment = []
+        username = ''
+        if self.user:
+            username = self.user.name
+            error = "Error: Comment can not be empty!"
+        if self.user and content:
+            c = PostComment(author=self.user.name, content=content)
+            c.put()
+            p.comment.append(c.key().id())
+            p.put()
+            error = None
+
+        for comment_id in p.comment:
+            comment.append(PostComment.by_id(comment_id))
+
+        self.render("permalink.html", post=p, username=username, comment=comment, error=error)
 
 
-# user info check
+
+# User signup-info check
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 PASS_RE = re.compile(r"^.{3,20}$")
 EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
@@ -219,6 +270,7 @@ def valid_email(email):
     return not email or EMAIL_RE.match(email)
 
 
+# Signup handler
 class Signup(Handler):
     def get(self):
         self.render("signup-form.html")
@@ -257,6 +309,7 @@ class Signup(Handler):
         raise NotImplementedError
 
 
+# Register Handler
 class Register(Signup):
     def done(self):
         # make sure the user doesn't already exist
@@ -272,6 +325,7 @@ class Register(Signup):
             self.redirect('/blog')
 
 
+# Login handler
 class Login(Handler):
     def get(self):
         self.render('login-form.html')
@@ -289,12 +343,14 @@ class Login(Handler):
             self.render('login-form.html', error=msg)
 
 
+# Logout handler
 class Logout(Handler):
     def get(self):
         self.logout()
         self.redirect('/blog')
 
 
+# Like handler
 class Like(Handler):
     def get(self, liked_id):
         error = None
@@ -316,6 +372,15 @@ class Like(Handler):
             self.redirect('/blog?error=' + error)
         else:
             self.redirect('/blog')
+
+
+# Comment handler
+# class Comment(Handler):
+#     def get(self, post_id):
+#         error = None
+#         if self.user:
+#             self.render("comment.html", username=self.user.name)
+
 
 
 
