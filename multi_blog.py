@@ -88,7 +88,7 @@ class Post(db.Model):
     @classmethod
     def by_id(cls, pid):
         return Post.get_by_id(pid)
-
+        
     def comment_counter(self):
         count = 0
         for i in self.comment:
