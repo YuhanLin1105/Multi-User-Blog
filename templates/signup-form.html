@@ -4,15 +4,34 @@
   <head>
     <title>Sign Up</title>
     <style type="text/css">
+      body {
+        width: 500px;
+        margin: 0 auto;
+        padding: 0px;
+      }
+      form {
+        font-size: 20px;
+        width: 500px;
+        margin: 0 auto;
+        padding: 0px;
+      }
+      button{
+        display: table;
+        width: 100px;
+        text-align: center;
+      }
       .label {text-align: right;}
       .error {color: red}
+      .footer {text-decoration:none; font-weight: bold; color: black}
+      .footer:hover{color: gray;}
     </style>
   </head>
 
   <body>
 
-    <form method="post">
-    <h2>Signup</h2>
+    <form class="signup" method="post">
+      <h2>Signup</h2>
+      <hr>
       <table>
         <tr>
           <td class="label">
@@ -61,13 +80,17 @@
             {{error_email}}
           </td>
         </tr>
+        <tr>
+          <td>
+            <input type="submit" value="      Submit     ">
+          </td>
+        </tr>
       </table>
-
-      <input type="submit">
     </form>
     <br>
-    <button onclick="window.location.href='/login'">Login</button>
-    <button onclick="window.location.href='/blog'">Back to blog</button>
+     <div >
+      <a class="footer" href='/login'>Login</a> | <a class="footer" href='/blog'>Back to blog</a>
+    </div>
   </body>
 
 </html>

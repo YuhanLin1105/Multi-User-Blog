@@ -5,20 +5,20 @@
       Welcome, {{username}} | <a class="login-link" href="/logout">Logout</a>
     </div>
     <form method="post">
-      <h2>new post</h2>
+      <h2>New Post</h2>
       <label>
-        <div>subject</div>
+        <div>Subject</div>
         <input type="text" name="subject" value="{{subject}}">
       </label>
 
       <label>
-        <div>blog</div>
+        <div>Blog</div>
         <textarea name="content">{{content}}</textarea>
       </label>
 
       <div class="error">{{error}}</div>
 
-      <input type="submit">
+      <input type="submit" value="           Submit           ">
     </form>
 
 {% endblock %}
