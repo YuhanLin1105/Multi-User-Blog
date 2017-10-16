@@ -1,14 +1,19 @@
 body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 14px;
+    font-size: 16px;
 
     width: 800px;
     margin: 0 auto;
-    padding: 10px;
+    padding: 0px;
     color: #333;
 }
 
 form {
+    width: 500px;
+    margin: 0 auto;
+}
+
+.signup {
     width: 500px;
     margin: 0 auto;
 }
@@ -20,25 +25,22 @@ h2 {
 }
 
 .login-area {
-    font-size: 13px;
+    font-size: 15px;
     color: gray;
     top: 10px;
     right: 10px;
     text-align: right;
     margin-bottom: 30px;
+    font-weight: bold;
 }
 
 .login-link {
-    color: gray;
+    color: black;
     text-decoration: none;
 }
 
-.login-link:visited {
-    color: gray;
-}
-
 .login-link:hover {
-    text-decoration: underline;
+    color: gray;
 }
 
 .error {
@@ -75,10 +77,12 @@ input[type=submit] {
 .main-title {
     display: block;
     color: #222;
-    font-size: 40px;
+    font-size: 50px;
     font-weight: bold;
     text-align: center;
     text-decoration: none;
+    margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .main-title:hover {
@@ -95,7 +99,7 @@ input[type=submit] {
 }
 
 .post-title {
-    font-size: 24px;
+    font-size: 30px;
     font-weight: bold;
 }
 
@@ -104,12 +108,8 @@ input[type=submit] {
     text-decoration: none;
 }
 
-.post-title-a:visited {
-    color: gray;
-}
-
 .post-title-a:hover {
-    color: purple;
+    color: gray;
 }
 
 .post-author-date {
@@ -126,7 +126,11 @@ input[type=submit] {
 }
 .post-comment {
     text-decoration: none;
-    color: #999;
+    font-weight: bold;
+    color: black;
+}
+.post-comment:hover {
+    color: gray;
 }
 
 .post-footer {
@@ -159,7 +163,7 @@ input[type=submit] {
 
 .comment-author{
     font-weight: bold;
-    color: gray;
+    color: black;
 }
 
 
