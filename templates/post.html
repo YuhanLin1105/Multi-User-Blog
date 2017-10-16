@@ -11,7 +11,8 @@
   <div class="post-content">
     {{p._render_text | safe}}
   </div>
-
+  <br>
+  <br>
   <div class="post-footer">
     <a class="post-comment" href={{'/like/{}'.format(p.key().id())}} >Like </a> {{p.liked}} |
     <a class="post-comment" href={{'/blog/{}'.format(p.key().id())}} >Comment </a> {{p.comment_counter()}}
