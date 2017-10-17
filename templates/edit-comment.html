@@ -5,14 +5,9 @@
       Welcome, {{username}} | <a class="login-link" onclick="window.history.go(-1)">Back</a> | <a class="login-link" href="/logout">Logout</a>
     </div>
     <form method="post">
-      <h2>New Post</h2>
+      <h2>Edit Comment</h2>
       <label>
-        <div>Subject</div>
-        <input type="text" name="subject" value="{{subject}}">
-      </label>
-
-      <label>
-        <div>Blog</div>
+        <div>Coment</div>
         <textarea name="content">{{content}}</textarea>
       </label>
 
@@ -22,6 +17,7 @@
         <input class="submit" type="submit" value="Submit">
         <button class="submit" type="button" onclick="window.history.go(-1)" > Cancel </button>
       </div>
+
     </form>
 
 {% endblock %}

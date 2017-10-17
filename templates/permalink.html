@@ -13,7 +13,7 @@
     {{post.render() | safe}}
     <br>
     <br>
-    <h3 class="comment-title">Comments:</h3>
+    <h3 class="comment-sign">Comments:</h3>
 
     {% for c in comment %}
         {{c.render() | safe}}
@@ -35,5 +35,6 @@
             alert("{{error}}");
         </script>
     {% endif %}
+
 
 {% endblock %}
