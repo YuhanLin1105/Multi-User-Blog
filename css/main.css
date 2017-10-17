@@ -13,11 +13,6 @@ form {
     margin: 0 auto;
 }
 
-.signup {
-    width: 500px;
-    margin: 0 auto;
-}
-
 h2 {
     font-size: 24px;
     font-weight: bold;
@@ -113,6 +108,7 @@ input[type=submit] {
 }
 
 .post-author-date {
+    font-size: 14px;
     position: absolute;
     right: 0px;
     bottom: 0px;
@@ -124,20 +120,35 @@ input[type=submit] {
     word-break:break-all;
     margin-top: 5px;
 }
+
+.post-footer {
+    text-align: right;
+    font-size:15px;
+
+}
+
 .post-comment {
-    text-decoration: none;
     font-weight: bold;
+    text-align: right;
+    text-decoration: none;
+
     color: black;
 }
 .post-comment:hover {
     color: gray;
 }
 
-.post-footer {
-    text-align: right;
+.post-edit {
+    font-size:14px;
+    text-decoration: none;
+    color: black;
 }
 
-.comment-title{
+.post-edit:hover {
+    color: gray;
+}
+
+.comment-sign{
     width:700px;
     padding: 0 auto;
     margin: 0 auto;
@@ -149,29 +160,37 @@ input[type=submit] {
 .comment {
     width: 700px;
     margin-left: 50px;
-    margin-top:10px;
-    margin-bottom: 20px;
+    padding-bottom: 5px;
     border-bottom: 1px solid #666;
-}
-.comment-content {
-    word-break:break-all;
-    width:700px;
-    border-bottom: : 3px solid #666;
-    margin-top: 5px;
-
 }
 
 .comment-author{
+    font-size: 15px;
     font-weight: bold;
     color: black;
+    float: left;
 }
 
-
 .comment-date {
-    font-size: 10px;
+    font-size: 12px;
     color: gray;
+    float: right;
+}
+
+.comment-content {
+    word-break:break-all;
+    margin-top: 5px;
+}
+
+.comment-footer{
     text-align: right;
-    margin-bottom: 5px;
+}
+.comment-edit {
+    font-size:12px;
+    font-weight: bold;
+    text-decoration: none;
+    color: black;
+
 }
 
 .comment-form-label {
@@ -188,4 +207,8 @@ input[type=submit] {
     position: relative;
     left: 150px;
     width:10em;
+}
+
+.submit {
+    font-size:18px;
 }
