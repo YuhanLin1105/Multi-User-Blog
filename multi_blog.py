@@ -51,7 +51,6 @@ class Handler(webapp2.RequestHandler):
     def read_secure_cookie(self, name):
         cookie_val = self.request.cookies.get(name)
         return cookie_val and check_secure_val(cookie_val)
-    # If True and True return cookie_val ; If not True and Ture return False
 
     def login(self, user):
         self.set_secure_cookie('user_id', str(user.key().id()))
@@ -69,10 +68,6 @@ class Handler(webapp2.RequestHandler):
 class MainPage(Handler):
     def get(self):
         self.redirect('/blog')
-
-# Do not understand the effect of the blog_key here
-# def blog_key(name='default'):
-#     return db.Key.from_path('blogs', name)
 
 
 # Post staff
@@ -106,6 +101,7 @@ class PostComment(db.Model):
     author = db.StringProperty(required=True)
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
+    post_id = db.IntegerProperty()
 
     @classmethod
     def by_id(cls, cid):
@@ -117,8 +113,7 @@ class PostComment(db.Model):
         return jinja2_env.get_template('comment.html').render(c=self)
 
 
-
-# User staff
+# Secure the passwork of user
 def make_salt(length=5):
     return ''.join(random.choice(letters) for x in xrange(length))
 
@@ -135,10 +130,7 @@ def valid_pw(name, password, h):
     return h == make_pw_hash(name, password, salt)
 
 
-# def users_key(group = 'default'):
-#     return db.Key.from_path('users', group)
-
-
+# User staff
 class User(db.Model):
     name = db.StringProperty(required=True)
     pw_hash = db.StringProperty(required=True)
@@ -177,6 +169,7 @@ class NewPost(Handler):
             self.redirect("/login")
 
     def post(self):
+        username = self.user.name
         subject = self.request.get('subject')
         content = self.request.get('content')
 
@@ -192,10 +185,10 @@ class NewPost(Handler):
         else:
             error = "subject and content please!"
             self.render("newpost.html", subject=subject, content=content,
-                        error=error)
+                        username=username, error=error)
 
 
-# Frontpage Handler
+# FrontPage Handler
 class BlogFront(Handler):
     def get(self):
         msg_error = self.request.get('error')
@@ -203,7 +196,8 @@ class BlogFront(Handler):
         posts = db.GqlQuery("select * from Post order by created desc limit 10"
                             )
         if self.user:
-            self.render("front.html", posts=posts, username=self.user.name, error=msg_error)
+            self.render("front.html", posts=posts, username=self.user.name,
+                        error=msg_error)
         else:
             self.render("front.html", posts=posts, error=msg_error)
 
@@ -211,8 +205,7 @@ class BlogFront(Handler):
 # Postpage Handler
 class PostPage(Handler):
     def get(self, post_id):
-        # Do not understand the effect of the parent here
-        # key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        msg_error = self.request.get('error')
         key = db.Key.from_path('Post', int(post_id))
         post = db.get(key)
 
@@ -225,9 +218,11 @@ class PostPage(Handler):
             c.append(PostComment.by_id(comment_id))
 
         if self.user:
-            self.render("permalink.html", post=post, username=self.user.name, comment=c)
+            self.render("permalink.html", post=post, username=self.user.name,
+                        comment=c, error=msg_error)
         else:
-            self.render("permalink.html", post=post, comment=c)
+            self.render("permalink.html", post=post, comment=c,
+                        error=msg_error)
 
     def post(self, post_id):
         error = "Error: please login!"
@@ -239,7 +234,8 @@ class PostPage(Handler):
             username = self.user.name
             error = "Error: Comment can not be empty!"
         if self.user and content:
-            c = PostComment(author=self.user.name, content=content)
+            c = PostComment(author=self.user.name, content=content,
+                            post_id=int(post_id))
             c.put()
             p.comment.append(c.key().id())
             p.put()
@@ -248,8 +244,8 @@ class PostPage(Handler):
         for comment_id in p.comment:
             comment.append(PostComment.by_id(comment_id))
 
-        self.render("permalink.html", post=p, username=username, comment=comment, error=error)
-
+        self.render("permalink.html", post=p, username=username,
+                    comment=comment, error=error)
 
 
 # User signup-info check
@@ -374,17 +370,115 @@ class Like(Handler):
             self.redirect('/blog')
 
 
-# Comment handler
-# class Comment(Handler):
-#     def get(self, post_id):
-#         error = None
-#         if self.user:
-#             self.render("comment.html", username=self.user.name)
+# Edit handler
+class PostEdit(Handler):
+    def get(self, post_id):
+        error = None
+        if self.user:
+            username = self.user.name
+            p = Post.by_id(int(post_id))
+            if self.user.name == p.author:
+                subject = p.subject
+                content = p.content
+                self.render("edit-post.html", subject=subject, content=content,
+                            username=username)
+            else:
+                error = "Error: You can only edit your post!"
+                self.redirect('/blog?error=' + error)
+        else:
+            error = "Error: please login!"
+            self.redirect('/blog?error=' + error)
+
+    def post(self, post_id):
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+        username = self.user.name
+        if subject and content:
+            p = Post.by_id(int(post_id))
+            p.subject = subject
+            p.content = content
+            p.put()
+            time.sleep(0.5)
+            self.redirect('/blog/{}'.format(post_id))
+        else:
+            error = "Subject and content please!"
+            self.render("edit-post.html", subject=subject, content=content,
+                        username=username, error=error)
 
 
+# Delete handler
+class PostDelete(Handler):
+    def get(self, post_id):
+        error = None
+        if self.user:
+            p = Post.by_id(int(post_id))
+            if self.user.name == p.author:
+                p.delete()
+                time.sleep(0.5)
+                self.redirect('/blog')
+            else:
+                error = "Error: You can only delete your post!"
+                self.redirect('/blog?error={}'.format(error))
+        else:
+            error = "Error: please login!"
+            self.redirect('/blog?error=' + error)
 
 
+# CommentEdit handler
+class CommentEdit(Handler):
+    def get(self, c_id):
+        error = None
+        c = PostComment.by_id(int(c_id))
+        p_id = c.post_id
+        if self.user:
+            username = self.user.name
+            if username == c.author:
+                content = c.content
+                self.render("edit-comment.html", content=content,
+                            username=username)
+            else:
+                error = "Error: You can only edit your comment!"
+                self.redirect('/blog/{}?error={}'.format(p_id, error))
+        else:
+            error = "Error: please login!"
+            self.redirect('/blog/{}?error={}'.format(p_id, error))
 
+    def post(self, c_id):
+        content = self.request.get('content')
+        username = self.user.name
+        c = PostComment.by_id(int(c_id))
+        p_id = c.post_id
+        if content:
+            c.content = content
+            c.put()
+            time.sleep(0.5)
+            self.redirect('/blog/{}'.format(p_id))
+        else:
+            error = "Content please!"
+            self.render("edit-comment.html", username=username, error=error)
+
+
+# Delete handler
+class CommentDelete(Handler):
+    def get(self, c_id):
+        error = None
+        c = PostComment.by_id(int(c_id))
+        p_id = c.post_id
+        if self.user:
+            username = self.user.name
+            p = Post.by_id(p_id)
+            if username == c.author:
+                c.delete()
+                p.comment.remove(int(c_id))
+                p.put()
+                time.sleep(0.5)
+                self.redirect('/blog/{}'.format(p_id))
+            else:
+                error = "Error: You can only delete your comment!"
+                self.redirect('/blog/{}?error={}'.format(p_id, error))
+        else:
+            error = "Error: please login!"
+            self.redirect('/blog/{}?error={}'.format(p_id, error))
 
 
 app = webapp2.WSGIApplication([('/', MainPage),
@@ -394,6 +488,9 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
-                               ('/like/([0-9]+)', Like)],
-                                debug=True)
-
+                               ('/like/([0-9]+)', Like),
+                               ('/edit/([0-9]+)', PostEdit),
+                               ('/delete/([0-9]+)', PostDelete),
+                               ('/c_edit/([0-9]+)', CommentEdit),
+                               ('/c_delete/([0-9]+)', CommentDelete)],
+                              debug=True)
