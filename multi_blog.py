@@ -16,18 +16,21 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 # Jinja2 environment
 jinja2_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                 autoescape=True)
+
+
 # secure the cookie (Should put this in a secret file)
-secret = 'This is a secret'
+class Help_cookie:
+    secret = 'This is a secret'
 
+    @classmethod
+    def make_secure_val(self, val):
+        return '%s|%s' % (val, hmac.new(self.secret, val).hexdigest())
 
-def make_secure_val(val):
-    return '%s|%s' % (val, hmac.new(secret, val).hexdigest())
-
-
-def check_secure_val(secure_val):
-    val = secure_val.split('|')[0]
-    if secure_val == make_secure_val(val):
-        return val
+    @classmethod
+    def check_secure_val(self, secure_val):
+        val = secure_val.split('|')[0]
+        if secure_val == self.make_secure_val(val):
+            return val
 
 
 # The parent class for all handler
@@ -43,14 +46,14 @@ class Handler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
     def set_secure_cookie(self, name, val):
-        cookie_val = make_secure_val(val)
+        cookie_val = Help_cookie.make_secure_val(val)
         self.response.headers.add_header(
             'Set-Cookie',
             '%s=%s; Path=/' % (name, cookie_val))
 
     def read_secure_cookie(self, name):
         cookie_val = self.request.cookies.get(name)
-        return cookie_val and check_secure_val(cookie_val)
+        return cookie_val and Help_cookie.check_secure_val(cookie_val)
 
     def login(self, user):
         self.set_secure_cookie('user_id', str(user.key().id()))
