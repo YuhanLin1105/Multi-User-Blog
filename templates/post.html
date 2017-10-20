@@ -4,7 +4,7 @@
       <a class="post-title-a" href={{'/blog/{}'.format(p.key().id())}}>{{p.subject}}</a>
     </div>
     <div class="post-author-date">
-      By {{p.author}},  {{p.created.strftime("%b %d, %Y")}}
+      By {{p.author.name}},  {{p.created.strftime("%b %d, %Y")}}
     </div>
   </div>
 
