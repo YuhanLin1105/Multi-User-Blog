@@ -83,11 +83,15 @@ class User(db.Model):
             return None if the object (User) do not exist
         """
         return User.get_by_id(uid)
-
-    # @classmethod
-    # def by_name(cls, name):
-    #     u = User.all().filter('name =', name).get()
-    #     return u
+    
+    @classmethod
+    def by_name(cls, name):
+        """ A classmethod function to get the object (user) by
+            name(str)
+            return None if the object (User) do not exist
+        """
+        u = User.all().filter('name =', name).get()
+        return u
 
     @classmethod
     def register(cls, name, pw, email=None):
@@ -97,11 +101,11 @@ class User(db.Model):
                     pw_hash=pw_hash,
                     email=email)
 
-    # @classmethod
-    # def login(cls, name, pw):
-    #     u = cls.by_name(name)
-    #     if u and Helper_sign.valid_pw(name, pw, u.pw_hash):
-    #         return u
+    @classmethod
+    def login(cls, name, pw):
+         u = cls.by_name(name)
+         if u and Helper_sign.valid_pw(name, pw, u.pw_hash):
+             return u
 
 
 # Comment staff
@@ -111,7 +115,7 @@ class PostComment(db.Model):
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
     post_id = db.IntegerProperty()
-
+	
     @classmethod
     def by_id(cls, cid):
         """ A classmethod function to get the object (PostComment) by
@@ -135,21 +139,15 @@ class Post(db.Model):
     last_modified = db.DateTimeProperty(auto_now=True)
     liked = db.IntegerProperty(default=0)
     comment = db.ListProperty(int, default=[])
-
+    
     @classmethod
-<<<<<<< HEAD
     def by_id(cls, pid):
-        return Post.get_by_id(pid)
-        
-=======
-    def by_id(cls, post_id):
         """ A classmethod function to get the Post (object) by
             post_id(int)
             return None if the Post(object) do not exist
         """
-        return Post.get_by_id(post_id)
+        return Post.get_by_id(pid)
 
->>>>>>> 37f48c0a1b8fb5135c0534ce718bb680cd193de6
     def comment_counter(self):
         """ A function to count the number of comment in Post.comment """
         count = 0
