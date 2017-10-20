@@ -18,8 +18,8 @@ jinja2_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                 autoescape=True)
 
 
-# secure the cookie (Should put this in a secret file)
-class Help_cookie:
+# Helper class to secure the cookie (Should put this in a secret file)
+class Helper_cookie:
     secret = 'This is a secret'
 
     @classmethod
@@ -31,6 +31,130 @@ class Help_cookie:
         val = secure_val.split('|')[0]
         if secure_val == self.make_secure_val(val):
             return val
+
+
+# Helper class to secure and check the info of user
+class Helper_sign:
+    @classmethod
+    def make_salt(self, length=5):
+        return ''.join(random.choice(letters) for x in xrange(length))
+
+    @classmethod
+    def make_pw_hash(self, name, pw, salt=None):
+        if not salt:
+            salt = self.make_salt()
+        h = hashlib.sha256(name + pw + salt).hexdigest()
+        return '%s,%s' % (salt, h)
+
+    @classmethod
+    def valid_pw(self, name, password, h):
+        salt = h.split(',')[0]
+        return h == self.make_pw_hash(name, password, salt)
+
+    USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+    PASS_RE = re.compile(r"^.{3,20}$")
+    EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+
+    @classmethod
+    def valid_username(self, username):
+        return username and self.USER_RE.match(username)
+
+    @classmethod
+    def valid_password(self, password):
+        return password and self.PASS_RE.match(password)
+
+    @classmethod
+    def valid_email(self, email):
+        return not email or self.EMAIL_RE.match(email)
+
+
+# User staff
+class User(db.Model):
+    """ This is a object model class (User) of the database """
+    name = db.StringProperty(required=True)
+    pw_hash = db.StringProperty(required=True)
+    email = db.StringProperty()
+    liked = db.ListProperty(int, default=[])
+
+    @classmethod
+    def by_id(cls, uid):
+        """ A classmethod function to get the object (user) by
+            post_id(int)
+            return None if the object (User) do not exist
+        """
+        return User.get_by_id(uid)
+
+    # @classmethod
+    # def by_name(cls, name):
+    #     u = User.all().filter('name =', name).get()
+    #     return u
+
+    @classmethod
+    def register(cls, name, pw, email=None):
+        """ A classmethod function to create the object (user) """
+        pw_hash = Helper_sign.make_pw_hash(name, pw)
+        return User(name=name,
+                    pw_hash=pw_hash,
+                    email=email)
+
+    # @classmethod
+    # def login(cls, name, pw):
+    #     u = cls.by_name(name)
+    #     if u and Helper_sign.valid_pw(name, pw, u.pw_hash):
+    #         return u
+
+
+# Comment staff
+class PostComment(db.Model):
+    """ This is a object model class (PostComment) of the database """
+    author = db.ReferenceProperty(User, required=True)
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    post_id = db.IntegerProperty()
+
+    @classmethod
+    def by_id(cls, cid):
+        """ A classmethod function to get the object (PostComment) by
+            post_id(int)
+            return None if the object (PostComment) do not exist
+        """
+        return PostComment.get_by_id(cid)
+
+    def render(self):
+        """A function to render the  object (PostComent) to html """
+        self._render_text = self.content.replace('\n', '<br>')
+        return jinja2_env.get_template('comment.html').render(c=self)
+
+
+class Post(db.Model):
+    """ This is a object model class of the database """
+    subject = db.StringProperty(required=True)
+    author = db.ReferenceProperty(User, required=True)
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    last_modified = db.DateTimeProperty(auto_now=True)
+    liked = db.IntegerProperty(default=0)
+    comment = db.ListProperty(int, default=[])
+
+    @classmethod
+    def by_id(cls, post_id):
+        """ A classmethod function to get the Post (object) by
+            post_id(int)
+            return None if the Post(object) do not exist
+        """
+        return Post.get_by_id(post_id)
+
+    def comment_counter(self):
+        """ A function to count the number of comment in Post.comment """
+        count = 0
+        for i in self.comment:
+            count += 1
+        return count
+
+    def render(self):
+        """A function to render the object (Post) to html """
+        self._render_text = self.content.replace('\n', '<br>')
+        return jinja2_env.get_template('post.html').render(p=self)
 
 
 # The parent class for all handler
@@ -46,14 +170,14 @@ class Handler(webapp2.RequestHandler):
         self.write(self.render_str(template, **kw))
 
     def set_secure_cookie(self, name, val):
-        cookie_val = Help_cookie.make_secure_val(val)
+        cookie_val = Helper_cookie.make_secure_val(val)
         self.response.headers.add_header(
             'Set-Cookie',
             '%s=%s; Path=/' % (name, cookie_val))
 
     def read_secure_cookie(self, name):
         cookie_val = self.request.cookies.get(name)
-        return cookie_val and Help_cookie.check_secure_val(cookie_val)
+        return cookie_val and Helper_cookie.check_secure_val(cookie_val)
 
     def login(self, user):
         self.set_secure_cookie('user_id', str(user.key().id()))
@@ -67,124 +191,44 @@ class Handler(webapp2.RequestHandler):
         self.user = uid and User.by_id(int(uid))
 
 
-# The mainpage handler
+def login_required(func):
+    """
+    A decorator to confirm a user is logged in or redirect as needed.
+    """
+    def login(self, *args, **kwargs):
+        # Redirect to login if user not logged in, else execute func.
+        if not self.user:
+            self.redirect("/login")
+        else:
+            func(self, *args, **kwargs)
+    return login
+
+
+# Mainpage handler
 class MainPage(Handler):
+    @login_required
     def get(self):
         self.redirect('/blog')
 
 
-# Post staff
-class Post(db.Model):
-    subject = db.StringProperty(required=True)
-    author = db.StringProperty(required=True)
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    last_modified = db.DateTimeProperty(auto_now=True)
-    liked = db.IntegerProperty(default=0)
-    comment = db.ListProperty(int, default=[])
-
-    @classmethod
-    def by_id(cls, pid):
-        return Post.get_by_id(pid)
-
-    def comment_counter(self):
-        count = 0
-        for i in self.comment:
-            count += 1
-        return count
-
-    def render(self):
-        # Make '\n' work in html
-        self._render_text = self.content.replace('\n', '<br>')
-        return jinja2_env.get_template('post.html').render(p=self)
-
-
-# Comment staff
-class PostComment(db.Model):
-    author = db.StringProperty(required=True)
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    post_id = db.IntegerProperty()
-
-    @classmethod
-    def by_id(cls, cid):
-        return PostComment.get_by_id(cid)
-
-    def render(self):
-        # Make '\n' work in html
-        self._render_text = self.content.replace('\n', '<br>')
-        return jinja2_env.get_template('comment.html').render(c=self)
-
-
-# Secure the passwork of user
-def make_salt(length=5):
-    return ''.join(random.choice(letters) for x in xrange(length))
-
-
-def make_pw_hash(name, pw, salt=None):
-    if not salt:
-        salt = make_salt()
-    h = hashlib.sha256(name + pw + salt).hexdigest()
-    return '%s,%s' % (salt, h)
-
-
-def valid_pw(name, password, h):
-    salt = h.split(',')[0]
-    return h == make_pw_hash(name, password, salt)
-
-
-# User staff
-class User(db.Model):
-    name = db.StringProperty(required=True)
-    pw_hash = db.StringProperty(required=True)
-    email = db.StringProperty()
-    liked = db.ListProperty(int, default=[])
-
-    @classmethod
-    def by_id(cls, uid):
-        return User.get_by_id(uid)
-
-    @classmethod
-    def by_name(cls, name):
-        u = User.all().filter('name =', name).get()
-        return u
-
-    @classmethod
-    def register(cls, name, pw, email=None):
-        pw_hash = make_pw_hash(name, pw)
-        return User(name=name,
-                    pw_hash=pw_hash,
-                    email=email)
-
-    @classmethod
-    def login(cls, name, pw):
-        u = cls.by_name(name)
-        if u and valid_pw(name, pw, u.pw_hash):
-            return u
-
-
 # NewPost Handler
 class NewPost(Handler):
+    @login_required
     def get(self):
-        if self.user:
-            self.render("newpost.html", username=self.user.name)
-        else:
-            self.redirect("/login")
+        self.render("newpost.html", username=self.user.name)
 
+    @login_required
     def post(self):
         username = self.user.name
         subject = self.request.get('subject')
         content = self.request.get('content')
 
         if subject and content:
-            # Do not understand the effect of the parent here
-            # p = Post(parent=blog_key(), subject=subject, content=content)
-            p = Post(subject=subject, content=content, author=self.user.name)
+            p = Post(subject=subject, content=content, author=self.user)
             p.put()
             self.user.liked.append(p.key().id())
             self.user.put()
             self.redirect('/blog/{}'.format(p.key().id()))
-            # self.redirect('/blog/%s' % str(p.key().id()))
         else:
             error = "subject and content please!"
             self.render("newpost.html", subject=subject, content=content,
@@ -209,11 +253,10 @@ class BlogFront(Handler):
 class PostPage(Handler):
     def get(self, post_id):
         msg_error = self.request.get('error')
-        key = db.Key.from_path('Post', int(post_id))
-        post = db.get(key)
-
+        post = Post.get_by_id(int(post_id))
         if not post:
-            self.error(404)
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
             return
 
         c = []
@@ -228,45 +271,33 @@ class PostPage(Handler):
                         error=msg_error)
 
     def post(self, post_id):
-        error = "Error: please login!"
+        msg_error = "Error: please login!"
         p = Post.by_id(int(post_id))
+        if not p:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
         content = self.request.get('comment_content')
         comment = []
         username = ''
         if self.user:
             username = self.user.name
-            error = "Error: Comment can not be empty!"
+            msg_error = "Error: Comment can not be empty!"
+
         if self.user and content:
-            c = PostComment(author=self.user.name, content=content,
+            c = PostComment(author=self.user, content=content,
                             post_id=int(post_id))
             c.put()
             p.comment.append(c.key().id())
             p.put()
-            error = None
+            msg_error = None
 
         for comment_id in p.comment:
             comment.append(PostComment.by_id(comment_id))
 
         self.render("permalink.html", post=p, username=username,
-                    comment=comment, error=error)
-
-
-# User signup-info check
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-PASS_RE = re.compile(r"^.{3,20}$")
-EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
-
-
-def valid_username(username):
-    return username and USER_RE.match(username)
-
-
-def valid_password(password):
-    return password and PASS_RE.match(password)
-
-
-def valid_email(email):
-    return not email or EMAIL_RE.match(email)
+                    comment=comment, error=msg_error)
 
 
 # Signup handler
@@ -284,18 +315,18 @@ class Signup(Handler):
         params = dict(username=self.username,
                       email=self.email)
 
-        if not valid_username(self.username):
+        if not Helper_sign.valid_username(self.username):
             params['error_username'] = "Invalid username."
             have_error = True
 
-        if not valid_password(self.password):
+        if not Helper_sign.valid_password(self.password):
             params['error_password'] = "Invalid password."
             have_error = True
         elif self.password != self.verify:
             params['error_verify'] = "Passwords didn't match."
             have_error = True
 
-        if not valid_email(self.email):
+        if not Helper_sign.valid_email(self.email):
             params['error_email'] = "Invalid email."
             have_error = True
 
@@ -351,21 +382,23 @@ class Logout(Handler):
 
 # Like handler
 class Like(Handler):
+    @login_required
     def get(self, liked_id):
+        p = Post.by_id(int(liked_id))
         error = None
-        if self.user:
-            if int(liked_id) not in self.user.liked:
-                p = Post.by_id(int(liked_id))
-                p.liked += 1
-                p.put()
+        if not p:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
 
-                u = self.user
-                u.liked.append(int(liked_id))
-                u.put()
-            else:
-                error = "Error: you can not like this anymore."
+        if int(liked_id) not in self.user.liked:
+            p.liked += 1
+            p.put()
+            u = self.user
+            u.liked.append(int(liked_id))
+            u.put()
         else:
-            error = "Error: please login."
+            error = "Error: you can not like this anymore."
         time.sleep(0.5)
         if error:
             self.redirect('/blog?error=' + error)
@@ -375,29 +408,37 @@ class Like(Handler):
 
 # Edit handler
 class PostEdit(Handler):
+    @login_required
     def get(self, post_id):
         error = None
-        if self.user:
-            username = self.user.name
-            p = Post.by_id(int(post_id))
-            if self.user.name == p.author:
-                subject = p.subject
-                content = p.content
-                self.render("edit-post.html", subject=subject, content=content,
-                            username=username)
-            else:
-                error = "Error: You can only edit your post!"
-                self.redirect('/blog?error=' + error)
+        username = self.user.name
+        p = Post.by_id(int(post_id))
+        if not p:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
+        if self.user.name == p.author.name:
+            subject = p.subject
+            content = p.content
+            self.render("edit-post.html", subject=subject, content=content,
+                        username=username)
         else:
-            error = "Error: please login!"
+            error = "Error: You can only edit your post!"
             self.redirect('/blog?error=' + error)
 
+    @login_required
     def post(self, post_id):
         subject = self.request.get('subject')
         content = self.request.get('content')
         username = self.user.name
+        p = Post.by_id(int(post_id))
+        if not p:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
         if subject and content:
-            p = Post.by_id(int(post_id))
             p.subject = subject
             p.content = content
             p.put()
@@ -411,45 +452,55 @@ class PostEdit(Handler):
 
 # Delete handler
 class PostDelete(Handler):
+    @login_required
     def get(self, post_id):
         error = None
-        if self.user:
-            p = Post.by_id(int(post_id))
-            if self.user.name == p.author:
-                p.delete()
-                time.sleep(0.5)
-                self.redirect('/blog')
-            else:
-                error = "Error: You can only delete your post!"
-                self.redirect('/blog?error={}'.format(error))
+        p = Post.by_id(int(post_id))
+        if not p:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
+        if self.user.name == p.author.name:
+            p.delete()
+            time.sleep(0.5)
+            self.redirect('/blog')
         else:
-            error = "Error: please login!"
-            self.redirect('/blog?error=' + error)
+            error = "Error: You can only delete your post!"
+            self.redirect('/blog?error={}'.format(error))
 
 
 # CommentEdit handler
 class CommentEdit(Handler):
+    @login_required
     def get(self, c_id):
         error = None
         c = PostComment.by_id(int(c_id))
+        if not c:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
         p_id = c.post_id
-        if self.user:
-            username = self.user.name
-            if username == c.author:
-                content = c.content
-                self.render("edit-comment.html", content=content,
-                            username=username)
-            else:
-                error = "Error: You can only edit your comment!"
-                self.redirect('/blog/{}?error={}'.format(p_id, error))
+        username = self.user.name
+        if username == c.author.name:
+            content = c.content
+            self.render("edit-comment.html", content=content,
+                        username=username)
         else:
-            error = "Error: please login!"
+            error = "Error: You can only edit your comment!"
             self.redirect('/blog/{}?error={}'.format(p_id, error))
 
+    @login_required
     def post(self, c_id):
         content = self.request.get('content')
         username = self.user.name
         c = PostComment.by_id(int(c_id))
+        if not c:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
         p_id = c.post_id
         if content:
             c.content = content
@@ -463,24 +514,26 @@ class CommentEdit(Handler):
 
 # Delete handler
 class CommentDelete(Handler):
+    @login_required
     def get(self, c_id):
         error = None
         c = PostComment.by_id(int(c_id))
+        if not c:
+            msg_error = "Error: page is not found!"
+            self.redirect('/blog?error=' + msg_error)
+            return
+
         p_id = c.post_id
-        if self.user:
-            username = self.user.name
-            p = Post.by_id(p_id)
-            if username == c.author:
-                c.delete()
-                p.comment.remove(int(c_id))
-                p.put()
-                time.sleep(0.5)
-                self.redirect('/blog/{}'.format(p_id))
-            else:
-                error = "Error: You can only delete your comment!"
-                self.redirect('/blog/{}?error={}'.format(p_id, error))
+        username = self.user.name
+        p = Post.by_id(p_id)
+        if username == c.author.name:
+            c.delete()
+            p.comment.remove(int(c_id))
+            p.put()
+            time.sleep(0.5)
+            self.redirect('/blog/{}'.format(p_id))
         else:
-            error = "Error: please login!"
+            error = "Error: You can only delete your comment!"
             self.redirect('/blog/{}?error={}'.format(p_id, error))
 
 
