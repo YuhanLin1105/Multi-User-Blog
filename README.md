@@ -14,4 +14,4 @@ This is a Multi-User blog project following the [Project Rubric](https://review.
 * When developing locally, you can use dev_appserver.py to run a copy of your app on your own computer, and access it at http://localhost:8080/.
 
 ## License
-The content of this repository is licensed under a [MIT License](https://choosealicense.com/licenses/mit/)
+The content of this repository is licensed under a [MIT License](https://choosealicense.com/licenses/mit/).
